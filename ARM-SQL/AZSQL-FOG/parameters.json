@@ -1,0 +1,69 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "tagValues": {
+            "value": {
+                "Environment": "Prod",
+                "Projectid": "<1234>",
+                "Projectname": "<some name>",
+                "Subcontractor": "<some vendor>",
+                "Routineid": "<some number>",
+                "Routinename": "<some name>",
+                "Applicationname": "<some application name>"
+            }
+        },
+        "sqlServerPrimaryName": {
+            "value": "<Name of primary SQL server>"
+        },
+        "sqlServerPrimaryAdminUsername": {
+            "value": "<Admin user for SQL Server primary>"
+        },
+        "sqlServerSecondaryName": {
+            "value": "<Name of HA SQL Server>"
+        },
+        "sqlServerPrimaryRegion": {
+            "value": "westeurope"
+        },
+        "sqlServerSecondaryRegion": {
+            "value": "northeurope"
+        },
+        "sqlServerSecondaryAdminUsername": {
+            "value": "<Admin user for SQL Server HA>"
+        },
+        "sqlServerPrimaryAdminPassword": {
+            "reference": {
+                "keyVault": {
+                  "id": "/subscriptions/<subscription id>/resourceGroups/<resource group name>/providers/Microsoft.KeyVault/vaults/<keyvault name>"
+                },
+                "secretName": "sqlServerPrimaryAdminPassword"
+            }
+        },
+        "sqlServerSecondaryAdminPassword": {
+            "reference": {
+                "keyVault": {
+                  "id": "/subscriptions/<subscription id>/resourceGroups/<resource group name>/providers/Microsoft.KeyVault/vaults/<keyvault name>"
+                },
+                "secretName": "sqlServerSecondaryAdminPassword"
+            }
+        },    
+        "sqlFailoverGroupName": {
+            "value": "<Name of SQL failover group>"
+        },
+        "tier": {
+            "value": "GeneralPurpose"
+        },
+        "skuName": {
+            "value": "GP_Gen5_16"
+        },
+        "sqlDatabaseNameOne": {
+            "value": "<My db name one>"
+        },
+        "sqlDatabaseNameTwo": {
+            "value": "<MY db name two>"
+        },
+        "sqlDatabaseCollation": {
+            "value": "SQL_Latin1_General_CP1_CI_AS"
+        }               
+    }
+}
