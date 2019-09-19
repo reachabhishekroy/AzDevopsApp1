@@ -1,0 +1,105 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "tagValues": {
+            "value": {
+                "Environment": "Prod",
+                "Projectid": "<some ID>",
+                "Projectname": "<some name>",
+                "Subcontractor": "<some vendor>",
+                "Routineid": "<some id>",
+                "Routinename": "<some name>",
+                "Applicationname": "<app name>"
+            }
+        },
+        "GalleryImageSKU": {
+            "value": "2016-Datacenter"
+        },
+        "GalleryImagePublisher": {
+            "value": "MicrosoftWindowsServer"
+        }, 
+        "GalleryImageOffer": {
+            "value": "WindowsServer"
+        },
+        "VmName": {
+            "value": "<Your-Desired-Name>"
+        },
+        "avZone": {
+            "value": [ "2" ]
+        },
+        "VmDiskType": {
+            "value": "Premium_LRS"
+        },
+        "VmSize": {
+            "value": "Standard_B16ms"
+        },
+        "enableAcceleratedNetworking": {
+            "value": false
+        },
+        "domainToJoin": {
+            "value": "<Your-Domain>"
+        },
+        "vmJoinerUPN": {
+            "value": "<domain-join-user>@<domain-name>"
+        },
+        "vmJoinerPassword": {
+            "reference": {
+                "keyVault": {
+                 "id": "/subscriptions/<subscription-id>/resourceGroups/<your-Resourcegroup>/providers/Microsoft.KeyVault/vaults/<Yourkeyvaultname>"
+                },
+                "secretName":"VMJoinPassword"
+            }    
+        },
+        "localAdminUsername": {
+            "value": "mylocaladmin"
+        },
+        "localAdminPassword": {
+            "reference": {
+                "keyVault": {
+                  "id": "/subscriptions/<subscription-id>/resourceGroups/<your-Resourcegroup>/providers/Microsoft.KeyVault/vaults/<Yourkeyvaultname>"
+                },
+                "secretName": "localadminpassword"
+            }
+        },
+        "existingVnetName": {
+            "value": "<Your existing VNET name>"
+        },
+        "existingSubnetName": {
+            "value": "<Your existing SUBNET name>"
+        },
+        "virtualNetworkResourceGroupName": {
+            "value": "<Your VNET resource group>"
+        },
+        "location": {
+            "value": "westeurope"
+        },   
+        "monitoringExtensionEnabled": {
+            "value": true
+        },
+        "antimalwareExtensionEnabled": {
+            "value": true
+        },
+        "realtimeProtectionEnabled": {
+            "value": true
+        },
+        "logAnalyticsWorkspaceId": {
+            "value": "<id from log analytics>"
+        },
+        "logAnalyticsWorkspaceKey": {
+            "value": "<log analytics workspace key>"
+        },
+        "existingdiagnosticsStorageAccountName": {
+            "value": "<storage account name>"
+        },
+        "existingdiagnosticsStorageResourceGroup": {
+            "value": "<resource group of storage account>"
+        },
+        "vaultResourceId": {
+            "value": "/subscriptions/<subscription-id>/resourceGroups/<your-Resourcegroup>/providers/Microsoft.KeyVault/vaults/<Yourkeyvaultname>"
+        },
+        "certificateUrl": {
+            "value": "<your certificate url from vault>"
+        }
+    }
+}
