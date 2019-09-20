@@ -1,0 +1,455 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "tagValues": {
+            "type": "object",
+            "defaultValue": {
+                "Environment": "<Prod>",
+                "Projectid": "<1234>",
+                "Projectname": "<some name>",
+                "Subcontractor": "<some vendor>",
+                "Routineid": "<some number>",
+                "Routinename": "<some name>",
+                "Applicationname": "<some application name>"
+            }
+        },
+        "GalleryImageSKU": {
+            "type": "string",
+            "metadata": {
+                "description": "Image SKU."
+            },
+            "defaultValue": "2016-Datacenter"
+        },
+        "GalleryImagePublisher": {
+            "type": "string",
+            "metadata": {
+                "description": "."
+            },
+            "defaultValue": "MicrosoftWindowsServer"
+        },
+        "GalleryImageOffer": {
+            "type": "string",
+            "metadata": {
+                "description": "."
+            },
+            "defaultValue": "Windows Server"
+        },
+        "VMName": {
+            "type": "string",
+            "metadata": {
+                "description": "This is the name of the VM."
+            },
+            "defaultValue": "[take(toLower(resourceGroup().name),10)]"
+        },
+        "avZone": {
+            "type": "array",
+            "metadata": {
+                "description" : "The zone to put the VM in."
+            },
+            "defaultvalue": [ "1" ]
+        },
+        "VMDiskType": {
+            "type": "string",
+            "allowedValues": [
+                "Premium_LRS",
+                "StandardSSD_LRS",
+                "Standard_LRS"
+            ],
+            "metadata": {
+                "description": "The VM disk type for the VM: Premium_LRS (Default), Standard_LRS or StandardSSD_LRS."
+            },
+            "defaultValue": "Premium_LRS"
+        },
+        "VmSize": {
+            "type": "string",
+            "metadata": {
+                "description": "The size of the session host VMs."
+            },
+            "defaultValue": "Standard_D4s_v3"
+        },
+        "enableAcceleratedNetworking": {
+            "type": "bool",
+            "metadata": {
+                "description": "Enables Accelerated Networking feature, notice that VM size must support it, this is supported in most of general purpose and compute-optimized instances with 2 or more vCPUs, on instances that supports hyperthreading it is required minimum of 4 vCPUs."
+            },
+            "defaultValue": false
+        },  
+        "domainToJoin": {
+            "type": "string",
+            "metadata": {
+                "description": "FQDN of the AD Domain to which sesion host VMs are going to be joined. For example, 'contoso.com'."
+            }
+        },
+        "localAdminUserName": {
+            "type": "string",
+            "metadata": {
+                "description": "A username that will be used for the local administrator account on the host."
+            }
+        },
+        "localAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password that corresponds to the existing domain username."
+            }
+        },
+        "vmJoinerUPN": {
+            "type": "string",
+            "metadata": {
+                "description": "A username in the domain that has privileges to join the hosts to the domain. For example, 'vmjoiner@dnb.no'."
+            }
+        },
+        "vmJoinerPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password that corresponds to the vmJoinerUPN."
+            }
+        },
+        "ouPath": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) Specifiy an organizational unit (OU) to place the new virtual machines when joining the domain. If you do not have a specific OU to place the virtual machines, leave it blank. Example OU: 'OU=testOU;DC=domain;DC=Domain;DC=com'"
+            }
+        },
+        "existingVnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the virtual network the VMs will be connected to."
+            }
+        },
+        "existingSubnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The subnet the VMs will be placed in."
+            }
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group containing the existing virtual network."
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "(Required for Azure Marketplace.) Leave as is, unless you would like to not use a location that is different from the location of the resouce group."
+            }
+        },
+        "csTimestamp": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyMMddHHmm)')]",
+            "metadata": {
+                "description": "Should be unique each time to rerun the extension."
+            }
+        },
+        "monitoringExtensionEnabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Specify if the Monitoring extension should be enabled for the VM."
+            }
+        },
+        "antimalwareExtensionEnabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Specify if Antimalware should be enabled for the VM."
+            }
+        },
+        "realtimeProtectionEnabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Specify if Antimalware Realtime protection should be enabled for the VM."
+            }
+        },
+        "vmDiagnosticsExtensionEnabled": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Specify if Realtime Protection should be enabled for the VM."
+            }
+        },
+        "logAnalyticsWorkspaceId": {
+            "type": "string"
+        },
+        "logAnalyticsWorkspaceKey": {
+            "type": "string"
+        },
+        "existingdiagnosticsStorageAccountName": {
+            "type": "string",
+            "metadata": {
+        "description": "The name of an existing storage account to which diagnostics data is transfered."
+            }
+        },
+        "existingdiagnosticsStorageResourceGroup": {
+            "type": "string",
+            "metadata": {
+        "description": "The resource group for the storage account specified in existingdiagnosticsStorageAccountName"
+            }
+        },
+        "vaultResourceId": {
+             "type": "string",
+             "metadata": {
+             "description": "ResourceId of the KeyVault"
+            }
+        },
+        "certificateUrl": {
+              "type": "string",
+              "metadata": {
+              "description": "Url of the certificate with version in KeyVault e.g. https://testault.vault.azure.net/secrets/testcert/b621es1db241e56a72d037479xab1r7"
+            }
+        }
+    },
+    "variables": {
+        "Prefix": "[parameters('VMName')]",
+        "vmName": "[parameters('VMName')]",
+        "availabilityZone" : "[parameters('avZone')]",
+        "vmJoinerUserName": "[first(split(parameters('vmJoinerUPN'), '@'))]",
+        "subnet-id": "[resourceId(parameters('virtualNetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',parameters('existingVnetName'), parameters('existingSubnetName'))]",
+        "accountid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/',parameters('existingdiagnosticsStorageResourceGroup'), '/providers/','Microsoft.Storage/storageAccounts/', parameters('existingdiagnosticsStorageAccountName'))]",
+        "wadlogs": "<WadCfg> <DiagnosticMonitorConfiguration overallQuotaInMB=\"4096\" xmlns=\"http://schemas.microsoft.com/ServiceHosting/2010/10/DiagnosticsConfiguration\"> <DiagnosticInfrastructureLogs scheduledTransferLogLevelFilter=\"Error\"/> <WindowsEventLog scheduledTransferPeriod=\"PT1M\" > <DataSource name=\"Application!*[System[(Level = 1 or Level = 2)]]\" /> <DataSource name=\"Security!*[System[(Level = 1 or Level = 2)]]\" /> <DataSource name=\"System!*[System[(Level = 1 or Level = 2)]]\" /></WindowsEventLog>",
+        "wadperfcounters1": "<PerformanceCounters scheduledTransferPeriod=\"PT1M\"><PerformanceCounterConfiguration counterSpecifier=\"\\Processor(_Total)\\% Processor Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"CPU utilization\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Processor(_Total)\\% Privileged Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"CPU privileged time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Processor(_Total)\\% User Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"CPU user time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Processor Information(_Total)\\Processor Frequency\" sampleRate=\"PT15S\" unit=\"Count\"><annotation displayName=\"CPU frequency\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\System\\Processes\" sampleRate=\"PT15S\" unit=\"Count\"><annotation displayName=\"Processes\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Process(_Total)\\Thread Count\" sampleRate=\"PT15S\" unit=\"Count\"><annotation displayName=\"Threads\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Process(_Total)\\Handle Count\" sampleRate=\"PT15S\" unit=\"Count\"><annotation displayName=\"Handles\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\% Committed Bytes In Use\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Memory usage\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\Available Bytes\" sampleRate=\"PT15S\" unit=\"Bytes\"><annotation displayName=\"Memory available\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\Committed Bytes\" sampleRate=\"PT15S\" unit=\"Bytes\"><annotation displayName=\"Memory committed\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\Memory\\Commit Limit\" sampleRate=\"PT15S\" unit=\"Bytes\"><annotation displayName=\"Memory commit limit\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\% Disk Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Disk active time\" locale=\"en-us\"/></PerformanceCounterConfiguration>",
+        "wadperfcounters2": "<PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\% Disk Read Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Disk active read time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\% Disk Write Time\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Disk active write time\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Transfers/sec\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk operations\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Reads/sec\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk read operations\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Writes/sec\" sampleRate=\"PT15S\" unit=\"CountPerSecond\"><annotation displayName=\"Disk write operations\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Bytes/sec\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk speed\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Read Bytes/sec\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk read speed\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\PhysicalDisk(_Total)\\Disk Write Bytes/sec\" sampleRate=\"PT15S\" unit=\"BytesPerSecond\"><annotation displayName=\"Disk write speed\" locale=\"en-us\"/></PerformanceCounterConfiguration><PerformanceCounterConfiguration counterSpecifier=\"\\LogicalDisk(_Total)\\% Free Space\" sampleRate=\"PT15S\" unit=\"Percent\"><annotation displayName=\"Disk free space (percentage)\" locale=\"en-us\"/></PerformanceCounterConfiguration></PerformanceCounters>",
+        "wadcfgxstart": "[concat(variables('wadlogs'), variables('wadperfcounters1'), variables('wadperfcounters2'), '<Metrics resourceId=\"')]",
+        "wadmetricsresourceid": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name , '/providers/', 'Microsoft.Compute/virtualMachines/')]",
+        "wadcfgxend": "\"><MetricAggregation scheduledTransferPeriod=\"PT1H\"/><MetricAggregation scheduledTransferPeriod=\"PT1M\"/></Metrics></DiagnosticMonitorConfiguration></WadCfg>"
+    },
+    "resources": [
+        {
+            "apiVersion": "2018-11-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat(variables('Prefix'), '-nic')]",
+            "tags": "[parameters('tagValues')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[variables('subnet-id')]"
+                            }
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": "[parameters('enableAcceleratedNetworking')]"
+            }
+        },
+        {
+                "apiVersion": "2018-10-01",
+                "type": "Microsoft.Compute/virtualMachines",
+                "name": "[concat(variables('Prefix'))]",
+                "location": "[parameters('location')]",
+                "tags": "[parameters('tagValues')]",
+                "dependsOn": ["[concat('Microsoft.Network/networkInterfaces/', variables('Prefix'), '-nic')]"],
+                "zones": "[variables('availabilityZone')]",
+                "properties": {
+                    "hardwareProfile": {
+                    "vmSize": "[parameters('VmSize')]"
+                },
+                "osProfile": 
+                {
+                    "computerName": "[concat(parameters('VMName'))]",
+                    "adminUsername": "[parameters('LocalAdminUsername')]",
+                    "adminPassword": "[parameters('LocalAdminPassword')]",
+                    "secrets": [
+                        {
+                                   "sourceVault": {
+                                   "id": "[parameters('vaultResourceId')]"
+                                },
+                                "vaultCertificates": [
+                                     {
+                                        "certificateUrl": "[parameters('certificateUrl')]",
+                                        "certificateStore": "My"
+                                      }
+                                ]
+                        }
+                    ],
+                    "windowsConfiguration": 
+                    {
+                        "provisionVMAgent": true,
+                        "winRM": {
+                            "listeners": [
+                                {
+                                "protocol": "Http"
+                                },
+                    	        {
+                                    "protocol": "Https",
+                                    "certificateUrl": "[parameters('certificateUrl')]"
+                                }
+                            ]
+                        },
+                        "enableAutomaticUpdates": true
+                    }
+                },
+                "storageProfile": 
+                {
+                    "imageReference": {
+                    "publisher": "[parameters('GalleryImagePublisher')]",
+                    "offer": "[parameters('GalleryImageOffer')]",
+                    "sku": "[parameters('GalleryImageSku')]",
+                    "version": "latest"
+                    },
+                    "osDisk": {
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                    "storageAccountType": "[parameters('VMDiskType')]"
+                    }
+                    }
+                },
+                "networkProfile": 
+                {
+                    "networkInterfaces": [
+                        {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('VMName'), '-nic'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": 
+                {
+                    "bootDiagnostics": {
+                    "enabled": false
+                    }
+                },
+                "licenseType": "Windows_Client"
+            }
+        },    
+        {
+            "apiVersion": "2018-10-01",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('Prefix'),'/', 'joindomain')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tagValues')]",
+            "dependsOn": [
+                "[concat(variables('Prefix'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "JsonADDomainExtension",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "name": "[parameters('domainToJoin')]",
+                    "ouPath": "[parameters('ouPath')]",
+                    "user": "[parameters('vmJoinerUPN')]",
+                    "restart": "true",
+                    "options": "3"
+                },
+                "protectedSettings": {
+                    "password": "[parameters('vmJoinerPassword')]"
+                }
+            }
+        },    
+        {
+            "comments": "AV Extension",
+            "condition": "[parameters('antimalwareExtensionEnabled')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2018-10-01",
+            "name": "[concat(variables('Prefix'),'/', 'IaaSAntimalware')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tagValues')]",
+            "dependsOn": [
+                "[concat(variables('Prefix'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Security",
+                "type": "IaaSAntimalware",
+                "typeHandlerVersion": "1.1",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "AntimalwareEnabled": "[parameters('antimalwareExtensionEnabled')]",
+                    "Exclusions": {
+                        "Paths": "",
+                        "Extensions": "",
+                        "Processes": ""
+                    },
+                    "RealtimeProtectionEnabled": "[parameters('realtimeProtectionEnabled')]",
+                    "ScheduledScanSettings": {
+                        "isEnabled": "false",
+                        "scanType": "Quick",
+                        "day": "7",
+                        "time": "120"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('Prefix'),'/', 'Microsoft.EnterpriseCloud.Monitoring')]",
+            "condition": "[parameters('MonitoringExtensionEnabled')]",
+            "apiVersion": "2018-06-01",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tagValues')]",
+            "dependsOn": [
+                "[concat(variables('Prefix'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+                "type": "MicrosoftMonitoringAgent",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "workspaceId": "[parameters('logAnalyticsWorkspaceId')]"
+                },
+                "protectedSettings": {
+                    "workspaceKey": "[parameters('logAnalyticsWorkspaceKey')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('Prefix'),'/', 'Microsoft.Insights.VMDiagnosticsSettings')]",
+            "condition": "[parameters('vmDiagnosticsExtensionEnabled')]",
+            "location": "[parameters('location')]",
+            "tags": "[parameters('tagValues')]",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[concat(variables('Prefix'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Diagnostics",
+                "type": "IaaSDiagnostics",
+                "typeHandlerVersion": "1.5",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "xmlCfg": "[base64(concat(variables('wadcfgxstart'), variables('wadmetricsresourceid'), concat(parameters('VMName')), variables('wadcfgxend')))]",
+                    "storageAccount": "[parameters('existingdiagnosticsStorageAccountName')]"
+                },
+                "protectedSettings": {
+                    "storageAccountName": "[parameters('existingdiagnosticsStorageAccountName')]",
+                    "storageAccountKey": "[listkeys(variables('accountid'), '2015-06-15').key1]",
+                    "storageAccountEndPoint": "https://core.windows.net"
+                }
+            }    
+        },
+        {
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "[concat(variables('Prefix'),'/','CustomScript')]",
+          "apiVersion": "2018-06-01",
+          "location": "[parameters('location')]",
+          "tags": "[parameters('tagValues')]",
+          "dependsOn": [
+                "[concat(variables('Prefix'))]"
+            ],
+        "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "fileUris": [
+                 "https://url of the file in storage account<append SAS token after generation in shared access signature of storage account>",
+                 "https://url of the file in storage account<append SAS token after generation in shared access signature of storage account>"
+                ]  
+            },
+                "protectedSettings": {
+                 "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -file customscript.ps1')]"
+                }
+          }
+        }
+    ]
+}
