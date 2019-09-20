@@ -26,7 +26,7 @@
             "value": "<Your-Desired-Name>"
         },
         "avZone": {
-            "value": [ "2" ]
+            "value": [ "1" ]
         },
         "VmDiskType": {
             "value": "Premium_LRS"
