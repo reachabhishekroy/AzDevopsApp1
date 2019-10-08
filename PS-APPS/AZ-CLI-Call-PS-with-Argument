@@ -1,0 +1,7 @@
+
+# AZ CLI command to install application using Powershell
+# Pass parameter to Powershell script from Azure Keyvault in AZ CLI
+# Pass Argument for inline script : -arg1 "$(ServerPrimaryAdminPassword)"
+
+az vm run-command invoke  --command-id RunPowerShellScript --name Your-VM-Name -g Your-Resource-Group --scripts @primaryappinstall.ps1 --parameters "arg1=$(ServerPrimaryAdminPassword)"
+
